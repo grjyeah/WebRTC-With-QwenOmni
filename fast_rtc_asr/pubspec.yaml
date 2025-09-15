@@ -1,6 +1,6 @@
 name: fast_rtc_asr
-description: 科大讯飞Linux SDK ASR语音识别与FastRTC集成
-version: 0.0.1
+description: 科大讯飞Linux SDK ASR语音识别与FastRTC集成，支持CosyVoice2 TTS模型
+version: 0.0.2
 homepage: https://github.com/example/fast_rtc_asr
 
 environment:
@@ -10,6 +10,7 @@ dependencies:
   flutter:
     sdk: flutter
   crypto: ^3.0.0
+  http: ^0.13.0
 
 dev_dependencies:
   flutter_test:

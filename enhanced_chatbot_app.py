@@ -6,7 +6,8 @@ import threading
 import base64
 import os
 import tempfile
-from gtts import gTTS
+# 将gTTS替换为CosyVoice TTS
+from cosyvoice_tts import CosyVoiceTTS
 
 # Global variables for WebSocket connection
 ws_connection = None
@@ -66,11 +67,12 @@ def text_to_speech(text):
         if not text:
             return None
 
-        # Create temporary file to save audio
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as tmpfile:
-            tts = gTTS(text, lang='zh')
-            tts.save(tmpfile.name)
-            return tmpfile.name
+        # 使用CosyVoice TTS生成语音
+        tts = CosyVoiceTTS(voice="中文女")
+        # 创建临时文件来保存音频（使用.wav格式）
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as tmpfile:
+            output_path = tts.speak_to_file(text, tmpfile.name)
+            return output_path
     except Exception as e:
         print(f"TTS error: {e}")
         return None

@@ -19,7 +19,21 @@
       "mcp__github__create_repository",
       "Bash(git init:*)",
       "Bash(git add:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(git remote add:*)",
+      "Bash(git branch:*)",
+      "Bash(git push:*)",
+      "Bash(git config:*)",
+      "Bash(gh auth login:*)",
+      "Bash(cat:*)",
+      "Read(//Users/guanrenjie/.cache/modelscope/hub/models/iic/**)",
+      "Bash(flutter test:*)",
+      "Bash(dart:*)",
+      "Read(//Users/guanrenjie/miniconda3/envs/fastrtc/lib/python3.11/site-packages/cosyvoice/**)",
+      "Read(//Users/guanrenjie/miniconda3/envs/fastrtc/lib/python3.11/site-packages/**)",
+      "WebFetch(domain:github.com)",
+      "mcp__github__search_repositories",
+      "Bash(grep:*)"
     ],
     "deny": [],
     "ask": []

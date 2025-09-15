@@ -10,7 +10,8 @@ from langchain.chains import LLMChain
 from langchain.memory import ConversationBufferMemory
 from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
 import tempfile
-from gtts import gTTS
+# 将gTTS替换为CosyVoice TTS
+from cosyvoice_tts import CosyVoiceTTS
 
 # 配置日志
 logging.basicConfig(level=logging.INFO)
@@ -81,11 +82,12 @@ class IntegratedASRChatbot:
             音频文件路径
         """
         try:
-            # 创建临时文件来保存音频
-            with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as tmpfile:
-                tts = gTTS(text, lang='zh')
-                tts.save(tmpfile.name)
-                return tmpfile.name
+            # 使用CosyVoice TTS生成语音
+            tts = CosyVoiceTTS(voice="中文女")
+            # 创建临时文件来保存音频（使用.wav格式）
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as tmpfile:
+                output_path = tts.speak_to_file(text, tmpfile.name)
+                return output_path
         except Exception as e:
             logger.error(f"TTS error: {e}")
             return None

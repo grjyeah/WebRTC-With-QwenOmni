@@ -1,6 +1,6 @@
 # FastRTC ASR 集成
 
-将科大讯飞Linux SDK的ASR语音识别功能集成到FastRTC中的Dart库。
+将科大讯飞Linux SDK的ASR语音识别功能集成到FastRTC中的Dart库，同时支持CosyVoice2 TTS文本转语音模型。
 
 ## 功能
 
@@ -8,6 +8,8 @@
 - 支持实时语音识别
 - 提供部分结果和最终结果回调
 - 易于集成到FastRTC项目中
+- 支持CosyVoice2 TTS文本转语音模型
+- 支持多种TTS语音、语速、音调和音量调节
 
 ## 安装
 
@@ -21,7 +23,7 @@ dependencies:
 
 ## 使用方法
 
-### 1. 初始化ASR集成
+### 1. 初始化ASR集成（带TTS支持）
 
 ```dart
 import 'package:fast_rtc_asr/fast_rtc_asr.dart';
@@ -30,10 +32,13 @@ final asrIntegration = FastRtcAsrIntegration(
   appId: 'your_app_id',
   apiKey: 'your_api_key',
   apiSecret: 'your_api_secret',
+  ttsModel: TtsModel.cosyvoice2, // 启用CosyVoice2 TTS
+  ttsApiKey: 'your_tts_api_key',
+  ttsApiUrl: 'your_tts_api_url', // 可选
 );
 ```
 
-### 2. 开始语音识别
+### 2. 开始语音识别（自动朗读结果）
 
 ```dart
 // 假设你有一个音频数据流（来自FastRTC）
@@ -54,11 +59,32 @@ try {
       // 处理错误
       print('ASR error: $error');
     },
+    autoSpeakResult: true, // 自动朗读识别结果
   );
 
   print('ASR completed: ${result.text}');
 } catch (e) {
   print('ASR failed: $e');
+}
+```
+
+### 3. 单独使用TTS功能
+
+```dart
+// 检查TTS是否可用
+if (asrIntegration.isTtsSupported) {
+  // 朗读文本
+  await asrIntegration.speak('你好，世界！');
+
+  // 设置TTS参数
+  await asrIntegration.setTtsVoice('cosyvoice2-female');
+  await asrIntegration.setTtsRate(1.2);
+  await asrIntegration.setTtsPitch(1.1);
+  await asrIntegration.setTtsVolume(0.8);
+
+  // 获取支持的语音列表
+  final voices = await asrIntegration.getAvailableTtsVoices();
+  print('Available voices: $voices');
 }
 ```
 
@@ -111,7 +137,7 @@ class FastRtcWithAsr {
 
 ### FastRtcAsrIntegration
 
-主要的集成类，用于管理ASR功能。
+主要的集成类，用于管理ASR和TTS功能。
 
 #### 构造函数
 
@@ -120,10 +146,13 @@ FastRtcAsrIntegration({
   required String appId,
   required String apiKey,
   required String apiSecret,
+  TtsModel? ttsModel,        // 可选：TTS模型
+  String? ttsApiKey,         // 可选：TTS API密钥
+  String? ttsApiUrl,         // 可选：TTS API URL
 })
 ```
 
-#### 方法
+#### ASR方法
 
 ##### startListening
 
@@ -135,6 +164,7 @@ Future<AsrResult> startListening({
   void Function(String)? onPartialResult,
   void Function(AsrResult)? onResult,
   void Function(Object)? onError,
+  bool autoSpeakResult = false, // 是否自动朗读结果
 })
 ```
 
@@ -146,12 +176,97 @@ Future<AsrResult> startListening({
 void stopListening()
 ```
 
+#### TTS方法
+
+##### speak
+
+使用TTS朗读文本。
+
+```dart
+Future<void> speak(String text)
+```
+
+##### stopSpeaking
+
+停止TTS朗读。
+
+```dart
+Future<void> stopSpeaking()
+```
+
+##### pauseSpeaking
+
+暂停TTS朗读。
+
+```dart
+Future<void> pauseSpeaking()
+```
+
+##### resumeSpeaking
+
+恢复TTS朗读。
+
+```dart
+Future<void> resumeSpeaking()
+```
+
+##### setTtsVoice
+
+设置TTS语音。
+
+```dart
+Future<void> setTtsVoice(String voiceName)
+```
+
+##### setTtsRate
+
+设置TTS语速。
+
+```dart
+Future<void> setTtsRate(double rate)
+```
+
+##### setTtsPitch
+
+设置TTS音调。
+
+```dart
+Future<void> setTtsPitch(double pitch)
+```
+
+##### setTtsVolume
+
+设置TTS音量。
+
+```dart
+Future<void> setTtsVolume(double volume)
+```
+
+##### getAvailableTtsVoices
+
+获取支持的TTS语音列表。
+
+```dart
+Future<List<String>> getAvailableTtsVoices()
+```
+
+##### isTtsSupported
+
+检查是否支持TTS。
+
+```dart
+bool get isTtsSupported
+```
+
 ## 注意事项
 
 1. 需要有效的科大讯飞开发者账号和相应的App ID、API Key、API Secret
 2. 音频数据应为16位16kHz单声道PCM格式
 3. 网络连接是必需的，因为ASR服务是云端服务
 4. 请确保遵守科大讯飞的服务条款和隐私政策
+5. 如果使用TTS功能，需要有效的CosyVoice2 API密钥
+6. TTS服务也是云端服务，需要稳定的网络连接
+7. 请确保遵守CosyVoice2的服务条款和隐私政策
 
 ## 许可证
 

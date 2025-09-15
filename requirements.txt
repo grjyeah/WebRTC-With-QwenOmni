@@ -7,5 +7,14 @@ langchain==0.2.0
 langchain-community==0.2.0
 openai==1.35.0
 gradio==4.0.0
-gtts==2.5.1
 websocket-client==1.8.0
+# CosyVoice TTS dependencies
+modelscope>=1.29.2
+cosyvoice>=0.0.5
+torch>=2.8.0
+torchaudio>=2.8.0
+transformers>=4.56.1
+peft>=0.17.1
+diffusers>=0.35.1
+addict>=2.4.0
+loguru>=0.7.0

@@ -1,8 +1,9 @@
 import gradio as gr
 import time
-from gtts import gTTS
 import os
 import tempfile
+# 将gTTS替换为CosyVoice TTS
+from cosyvoice_tts import CosyVoiceTTS
 
 # 模拟chatbot回复函数
 def chatbot_response(message, history):
@@ -21,11 +22,12 @@ def chatbot_response(message, history):
 # TTS函数 - 将文本转换为语音
 def text_to_speech(text):
     try:
-        # 创建临时文件来保存音频
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as tmpfile:
-            tts = gTTS(text, lang='zh')
-            tts.save(tmpfile.name)
-            return tmpfile.name
+        # 使用CosyVoice TTS生成语音
+        tts = CosyVoiceTTS(voice="中文女")
+        # 创建临时文件来保存音频（使用.wav格式）
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as tmpfile:
+            output_path = tts.speak_to_file(text, tmpfile.name)
+            return output_path
     except Exception as e:
         print(f"TTS错误: {e}")
         return None
