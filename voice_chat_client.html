@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Real-time Voice Chat</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .container {
+            text-align: center;
+        }
+        .controls {
+            margin: 20px 0;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        #status {
+            margin: 20px 0;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .connected {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .disconnected {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .user-list {
+            text-align: left;
+            margin: 20px 0;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Real-time Voice Chat</h1>
+
+        <div class="controls">
+            <input type="text" id="roomId" placeholder="Enter room ID" value="room1">
+            <button id="connectBtn">Connect</button>
+            <button id="disconnectBtn">Disconnect</button>
+            <button id="startCallBtn">Start Voice Chat</button>
+            <button id="stopCallBtn">Stop Voice Chat</button>
+        </div>
+
+        <div id="status" class="disconnected">Disconnected</div>
+
+        <div class="user-list">
+            <h3>Users in Room:</h3>
+            <ul id="usersList"></ul>
+        </div>
+
+        <div id="mediaContainer"></div>
+    </div>
+
+    <script>
+        // DOM元素
+        const connectBtn = document.getElementById('connectBtn');
+        const disconnectBtn = document.getElementById('disconnectBtn');
+        const startCallBtn = document.getElementById('startCallBtn');
+        const stopCallBtn = document.getElementById('stopCallBtn');
+        const roomIdInput = document.getElementById('roomId');
+        const statusDiv = document.getElementById('status');
+        const usersList = document.getElementById('usersList');
+        const mediaContainer = document.getElementById('mediaContainer');
+
+        // 变量
+        let ws = null;
+        let peerConnections = {};
+        let localStream = null;
+        let clientId = 'client_' + Math.random().toString(36).substr(2, 9);
+        let roomId = '';
+
+        // WebSocket连接
+        function connect() {
+            roomId = roomIdInput.value;
+            if (!roomId) {
+                alert('Please enter a room ID');
+                return;
+            }
+
+            const wsUrl = `ws://localhost:8000/ws/${clientId}/${roomId}`;
+            ws = new WebSocket(wsUrl);
+
+            ws.onopen = function(event) {
+                console.log('Connected to server');
+                statusDiv.textContent = 'Connected to room: ' + roomId;
+                statusDiv.className = 'connected';
+
+                // 请求房间用户列表
+                ws.send(JSON.stringify({type: 'get_users'}));
+            };
+
+            ws.onmessage = function(event) {
+                const message = JSON.parse(event.data);
+                handleMessage(message);
+            };
+
+            ws.onclose = function(event) {
+                console.log('Disconnected from server');
+                statusDiv.textContent = 'Disconnected';
+                statusDiv.className = 'disconnected';
+                stopAllConnections();
+            };
+
+            ws.onerror = function(error) {
+                console.error('WebSocket error:', error);
+            };
+        }
+
+        // 处理服务器消息
+        function handleMessage(message) {
+            switch(message.type) {
+                case 'users_list':
+                    updateUsersList(message.users);
+                    break;
+                case 'user_joined':
+                    console.log('User joined:', message.client_id);
+                    createPeerConnection(message.client_id);
+                    break;
+                case 'user_left':
+                    console.log('User left:', message.client_id);
+                    closePeerConnection(message.client_id);
+                    break;
+                case 'offer':
+                    handleOffer(message);
+                    break;
+                case 'answer':
+                    handleAnswer(message);
+                    break;
+                case 'ice_candidate':
+                    handleIceCandidate(message);
+                    break;
+            }
+        }
+
+        // 更新用户列表
+        function updateUsersList(users) {
+            usersList.innerHTML = '';
+            users.forEach(user => {
+                if (user !== clientId) {
+                    const li = document.createElement('li');
+                    li.textContent = user + (peerConnections[user] ? ' (connected)' : ' (available)');
+                    usersList.appendChild(li);
+                }
+            });
+        }
+
+        // 获取本地媒体流
+        async function getLocalStream() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    audio: true,
+                    video: false
+                });
+                localStream = stream;
+
+                // 显示本地音频
+                const audio = document.createElement('audio');
+                audio.srcObject = stream;
+                audio.muted = true;
+                audio.play();
+                mediaContainer.appendChild(audio);
+
+                return stream;
+            } catch (error) {
+                console.error('Error getting local stream:', error);
+                alert('Could not access microphone');
+            }
+        }
+
+        // 创建PeerConnection
+        function createPeerConnection(remoteClientId) {
+            const configuration = {
+                iceServers: [
+                    { urls: 'stun:stun.l.google.com:19302' }
+                ]
+            };
+
+            const pc = new RTCPeerConnection(configuration);
+
+            // 添加本地流
+            if (localStream) {
+                localStream.getTracks().forEach(track => {
+                    pc.addTrack(track, localStream);
+                });
+            }
+
+            // 接收远程流
+            pc.ontrack = function(event) {
+                const audio = document.createElement('audio');
+                audio.srcObject = event.streams[0];
+                audio.play();
+                mediaContainer.appendChild(audio);
+            };
+
+            // ICE候选处理
+            pc.onicecandidate = function(event) {
+                if (event.candidate) {
+                    ws.send(JSON.stringify({
+                        type: 'ice_candidate',
+                        candidate: event.candidate,
+                        target: remoteClientId
+                    }));
+                }
+            };
+
+            // 连接状态变化
+            pc.onconnectionstatechange = function() {
+                console.log('Connection state:', pc.connectionState);
+                if (pc.connectionState === 'connected') {
+                    console.log('Connected to', remoteClientId);
+                }
+            };
+
+            peerConnections[remoteClientId] = pc;
+            return pc;
+        }
+
+        // 关闭PeerConnection
+        function closePeerConnection(remoteClientId) {
+            if (peerConnections[remoteClientId]) {
+                peerConnections[remoteClientId].close();
+                delete peerConnections[remoteClientId];
+            }
+        }
+
+        // 关闭所有连接
+        function stopAllConnections() {
+            Object.keys(peerConnections).forEach(remoteClientId => {
+                closePeerConnection(remoteClientId);
+            });
+
+            if (localStream) {
+                localStream.getTracks().forEach(track => track.stop());
+                localStream = null;
+            }
+
+            mediaContainer.innerHTML = '';
+        }
+
+        // 处理offer
+        async function handleOffer(message) {
+            const pc = createPeerConnection(message.sender);
+
+            await pc.setRemoteDescription(new RTCSessionDescription({
+                type: 'offer',
+                sdp: message.sdp
+            }));
+
+            const answer = await pc.createAnswer();
+            await pc.setLocalDescription(answer);
+
+            ws.send(JSON.stringify({
+                type: 'answer',
+                sdp: answer.sdp,
+                target: message.sender
+            }));
+        }
+
+        // 处理answer
+        async function handleAnswer(message) {
+            const pc = peerConnections[message.sender];
+            if (pc) {
+                await pc.setRemoteDescription(new RTCSessionDescription({
+                    type: 'answer',
+                    sdp: message.sdp
+                }));
+            }
+        }
+
+        // 处理ICE候选
+        function handleIceCandidate(message) {
+            const pc = peerConnections[message.sender];
+            if (pc && message.candidate) {
+                pc.addIceCandidate(new RTCIceCandidate(message.candidate));
+            }
+        }
+
+        // 开始语音聊天
+        async function startVoiceChat() {
+            if (!ws || ws.readyState !== WebSocket.OPEN) {
+                alert('Please connect first');
+                return;
+            }
+
+            // 获取本地媒体流
+            await getLocalStream();
+
+            // 向房间内所有用户发送offer
+            Object.keys(peerConnections).forEach(remoteClientId => {
+                createOffer(remoteClientId);
+            });
+        }
+
+        // 创建offer
+        async function createOffer(remoteClientId) {
+            const pc = peerConnections[remoteClientId] || createPeerConnection(remoteClientId);
+
+            const offer = await pc.createOffer();
+            await pc.setLocalDescription(offer);
+
+            ws.send(JSON.stringify({
+                type: 'offer',
+                sdp: offer.sdp,
+                target: remoteClientId
+            }));
+        }
+
+        // 停止语音聊天
+        function stopVoiceChat() {
+            stopAllConnections();
+        }
+
+        // 断开连接
+        function disconnect() {
+            if (ws) {
+                ws.close();
+                ws = null;
+            }
+            stopAllConnections();
+        }
+
+        // 事件监听器
+        connectBtn.addEventListener('click', connect);
+        disconnectBtn.addEventListener('click', disconnect);
+        startCallBtn.addEventListener('click', startVoiceChat);
+        stopCallBtn.addEventListener('click', stopVoiceChat);
+
+        // 页面卸载时断开连接
+        window.addEventListener('beforeunload', disconnect);
+    </script>
+</body>
+</html>

@@ -1,0 +1,53 @@
+# Real-time Voice Conversation System - Data Flow
+
+```mermaid
+graph LR
+    A[User] --> B[Voice Client<br/>HTML/JS]
+    A --> C[Text Interface<br/>Gradio]
+
+    subgraph "Frontend Layer"
+        B
+        C
+    end
+
+    B --> D[FastRTC Server<br/>WebRTC Signaling]
+    C --> E[ASR Chatbot<br/>WebSocket API]
+
+    subgraph "Backend Services"
+        D
+        E
+    end
+
+    D --> F[ASR Processing<br/>Speech-to-Text]
+    F --> E
+
+    E --> G[Langchain Chatbot<br/>Qwen AI Model]
+    G --> E
+
+    E --> H[TTS Engine<br/>Text-to-Speech]
+    H --> I[Audio Output]
+
+    I --> A
+
+    style A fill:#e3f2fd
+    style B fill:#ffebee
+    style C fill:#ffebee
+    style D fill:#f3e5f5
+    style E fill:#f3e5f5
+    style F fill:#e8f5e8
+    style G fill:#fff3e0
+    style H fill:#e8f5e8
+    style I fill:#e3f2fd
+
+    classDef frontend fill:#ffebee,stroke:#333;
+    classDef backend fill:#f3e5f5,stroke:#333;
+    classDef processing fill:#e8f5e8,stroke:#333;
+    classDef ai fill:#fff3e0,stroke:#333;
+    classDef user fill:#e3f2fd,stroke:#333;
+
+    class B,C frontend
+    class D,E backend
+    class F,H processing
+    class G ai
+    class A,I user
+```

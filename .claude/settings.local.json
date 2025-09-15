@@ -1,0 +1,27 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:fastrtc.org)",
+      "Bash(pip install:*)",
+      "WebFetch(domain:www.xfyun.cn)",
+      "WebSearch",
+      "Bash(python:*)",
+      "Bash(flutter create:*)",
+      "Bash(pkill:*)",
+      "Bash(chmod:*)",
+      "Bash(curl:*)",
+      "Bash(pip show:*)",
+      "Bash(say:*)",
+      "Bash(./verify_installation.sh:*)",
+      "Bash(pip check:*)",
+      "Bash(find:*)",
+      "Bash(test:*)",
+      "mcp__github__create_repository",
+      "Bash(git init:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

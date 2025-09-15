@@ -1,0 +1,57 @@
+import gradio as gr
+import time
+
+# 模拟chatbot回复函数
+def chatbot_response(message, history):
+    # 模拟处理时间
+    time.sleep(1)
+    if "你好" in message:
+        response = "你好！很高兴见到你。有什么我可以帮助你的吗？"
+    elif "天气" in message:
+        response = "今天天气很好，阳光明媚，温度适宜。"
+    elif "名字" in message:
+        response = "我是你的AI助手，你可以叫我小助手。"
+    else:
+        response = f"你说了: '{message}'。我已经收到了你的消息，正在思考如何更好地帮助你。"
+    return response
+
+# 响应函数
+def respond(message, chat_history):
+    # 获取chatbot回复
+    bot_message = chatbot_response(message, chat_history)
+
+    # 更新聊天历史 (用户消息)
+    chat_history.append({"role": "user", "content": message})
+
+    # 更新聊天历史 (机器人消息)
+    chat_history.append({"role": "assistant", "content": bot_message})
+
+    return "", chat_history
+
+# 清除函数
+def clear_history():
+    return None, []
+
+# 创建Gradio界面
+with gr.Blocks() as demo:
+    gr.Markdown("# Simple Chatbot")
+    gr.Markdown("与chatbot实时对话")
+
+    # 聊天历史记录
+    chatbot = gr.Chatbot(label="对话记录", type="messages")
+
+    # 用户输入
+    msg = gr.Textbox(label="输入消息", placeholder="输入你的消息...")
+
+    # 清除按钮
+    clear = gr.Button("清除对话")
+
+    # 当用户提交消息时
+    msg.submit(respond, [msg, chatbot], [msg, chatbot])
+
+    # 清除对话历史
+    clear.click(clear_history, None, [msg, chatbot], queue=False)
+
+# 启动应用
+if __name__ == "__main__":
+    demo.launch(share=True)

@@ -1,0 +1,37 @@
+graph TD
+    A[User] --> B[Voice Chat Client<br/>HTML/JavaScript]
+    A --> C[Gradio Web Interface<br/>Python/Gradio]
+
+    B --> D[FastRTC Server<br/>Python/FastAPI<br/>Port 8000]
+    C --> E[ASR Chatbot<br/>Python/WebSocket<br/>Port 8765]
+
+    D --> F[ASR Processing<br/>Dart/FastRTC]
+    F --> E
+
+    E --> G[Langchain Chatbot<br/>Qwen Model]
+    G --> E
+
+    E --> H[TTS System<br/>gTTS]
+    H --> I[Audio Output]
+
+    I --> A
+
+    style A fill:#e1f5fe
+    style B fill:#fce4ec
+    style C fill:#fce4ec
+    style D fill:#f3e5f5
+    style E fill:#f3e5f5
+    style F fill:#e8f5e8
+    style G fill:#fff3e0
+    style H fill:#e8f5e8
+    style I fill:#e1f5fe
+
+    linkStyle 0 stroke:#00acc1
+    linkStyle 1 stroke:#00acc1
+    linkStyle 2 stroke:#7b1fa2
+    linkStyle 3 stroke:#7b1fa2
+    linkStyle 4 stroke:#ef6c00
+    linkStyle 5 stroke:#ef6c00
+    linkStyle 6 stroke:#4caf50
+    linkStyle 7 stroke:#4caf50
+    linkStyle 8 stroke:#00acc1
