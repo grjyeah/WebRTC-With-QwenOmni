@@ -67,19 +67,93 @@ export XF_API_SECRET=your_iflytek_api_secret
 
 ### 4. 启动系统
 
+有多种方式启动系统：
+
+#### 方式一：一键启动所有服务（推荐）
+```bash
+python main_system.py
+```
+
+#### 方式二：分别启动各组件
 ```bash
 # 启动语音聊天服务器
 python voice_chat_server.py
 
 # 启动聊天机器人服务
-python main_system.py
+python asr_chatbot.py
 
-# 访问Web客户端
-# 打开 voice_chat_client.html 进行语音聊天
-
-# 访问Gradio前端
-# 浏览器访问 http://localhost:7860
+# 启动Gradio前端界面
+python enhanced_chatbot_app.py
 ```
+
+#### 方式三：使用启动脚本
+```bash
+# 启动集成系统
+./start_integrated.sh
+
+# 或者使用基础启动脚本
+./start.sh
+```
+
+### 5. 访问系统
+
+启动系统后，可以通过以下方式访问：
+
+- **Gradio前端界面**：浏览器访问 http://localhost:7860
+- **WebRTC语音客户端**：直接打开 voice_chat_client.html 文件
+- **API接口**：通过WebSocket连接各服务端点
+
+### 6. 远程访问配置
+
+要支持远程访问，可以使用Nginx反向代理：
+
+1. 安装Nginx：
+   ```bash
+   # macOS
+   brew install nginx
+
+   # Ubuntu/Debian
+   sudo apt update && sudo apt install nginx
+   ```
+
+2. 配置Nginx反向代理（配置文件示例）：
+   ```nginx
+   server {
+       listen 80;
+       server_name your-domain.com;
+
+       # Gradio界面代理
+       location / {
+           proxy_pass http://localhost:7860;
+           proxy_set_header Host $host;
+           proxy_set_header X-Real-IP $remote_addr;
+           proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+           proxy_set_header X-Forwarded-Proto $scheme;
+       }
+
+       # WebRTC WebSocket代理
+       location /ws/ {
+           proxy_pass http://localhost:8001/ws/;
+           proxy_http_version 1.1;
+           proxy_set_header Upgrade $http_upgrade;
+           proxy_set_header Connection "upgrade";
+           proxy_set_header Host $host;
+           proxy_set_header X-Real-IP $remote_addr;
+           proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+           proxy_set_header X-Forwarded-Proto $scheme;
+           proxy_read_timeout 86400;
+       }
+   }
+   ```
+
+3. 重启Nginx服务：
+   ```bash
+   # macOS
+   sudo brew services restart nginx
+
+   # Linux
+   sudo systemctl restart nginx
+   ```
 
 ## 项目结构
 
