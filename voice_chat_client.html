@@ -57,11 +57,24 @@
             <button id="stopCallBtn">Stop Voice Chat</button>
         </div>
 
+        <!-- Test ASR input for debugging -->
+        <div style="margin: 20px 0; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+            <h3>Test ASR Input (for debugging):</h3>
+            <input type="text" id="asrTestInput" placeholder="Enter ASR text for testing" style="width: 300px;">
+            <button id="sendAsrTestBtn">Send ASR Text</button>
+        </div>
+
         <div id="status" class="disconnected">Disconnected</div>
 
         <div class="user-list">
             <h3>Users in Room:</h3>
             <ul id="usersList"></ul>
+        </div>
+
+        <!-- Chat display area -->
+        <div id="chatContainer" style="margin: 20px 0; padding: 10px; border: 1px solid #ddd; border-radius: 5px; max-height: 300px; overflow-y: auto;">
+            <h3>Chat Messages:</h3>
+            <div id="chatMessages"></div>
         </div>
 
         <div id="mediaContainer"></div>
@@ -93,7 +106,10 @@
                 return;
             }
 
-            const wsUrl = `ws://localhost:8000/ws/${clientId}/${roomId}`;
+            statusDiv.textContent = 'Connecting to server on port 8001...';
+            statusDiv.className = 'disconnected';
+
+            const wsUrl = `ws://localhost:8001/ws/${clientId}/${roomId}`;
             ws = new WebSocket(wsUrl);
 
             ws.onopen = function(event) {
@@ -119,11 +135,150 @@
 
             ws.onerror = function(error) {
                 console.error('WebSocket error:', error);
+                statusDiv.textContent = 'Connection failed. Make sure the server is running on port 8001.';
+                statusDiv.className = 'disconnected';
+                alert('Failed to connect to the server. Please make sure the server is running on port 8001.');
             };
+        }
+
+        // 自动连接到服务器
+        function autoConnect() {
+            // 设置默认房间ID
+            roomIdInput.value = 'room1';
+            roomId = roomIdInput.value;
+
+            console.log('Attempting to automatically connect to server...');
+
+            const wsUrl = `ws://localhost:8001/ws/${clientId}/${roomId}`;
+            ws = new WebSocket(wsUrl);
+
+            ws.onopen = function(event) {
+                console.log('Automatically connected to server');
+                statusDiv.textContent = 'Connected to room: ' + roomId;
+                statusDiv.className = 'connected';
+
+                // 请求房间用户列表
+                ws.send(JSON.stringify({type: 'get_users'}));
+            };
+
+            ws.onmessage = function(event) {
+                const message = JSON.parse(event.data);
+                handleMessage(message);
+            };
+
+            ws.onclose = function(event) {
+                console.log('Automatically disconnected from server');
+                statusDiv.textContent = 'Disconnected';
+                statusDiv.className = 'disconnected';
+                stopAllConnections();
+            };
+
+            ws.onerror = function(error) {
+                console.error('WebSocket auto-connect error:', error);
+                statusDiv.textContent = 'Auto-connection failed. Make sure the server is running on port 8001.';
+                statusDiv.className = 'disconnected';
+                alert('Failed to automatically connect to the server. Please make sure the server is running on port 8001.');
+            };
+        }
+
+        // Display bot response in chat
+        function displayBotResponse(text, clientId) {
+            const chatMessages = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.style.margin = '10px 0';
+            messageDiv.style.padding = '10px';
+            messageDiv.style.backgroundColor = '#f0f0f0';
+            messageDiv.style.borderRadius = '5px';
+
+            const timestamp = new Date().toLocaleTimeString();
+            messageDiv.innerHTML = `
+                <strong>Bot (${clientId}) [${timestamp}]:</strong>
+                <p>${text}</p>
+            `;
+
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        // Display user ASR text in chat
+        function displayUserASR(text) {
+            const chatMessages = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.style.margin = '10px 0';
+            messageDiv.style.padding = '10px';
+            messageDiv.style.backgroundColor = '#e3f2fd';
+            messageDiv.style.borderRadius = '5px';
+
+            const timestamp = new Date().toLocaleTimeString();
+            messageDiv.innerHTML = `
+                <strong>You [${timestamp}]:</strong>
+                <p>${text}</p>
+            `;
+
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        // Audio processing for ASR
+        function processAudioForASR(stream) {
+            console.log('Starting audio processing for ASR');
+
+            try {
+                // Create audio context for processing
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const source = audioContext.createMediaStreamSource(stream);
+
+                // Create script processor for audio chunks
+                const bufferSize = 4096;
+                const processor = audioContext.createScriptProcessor(bufferSize, 1, 1);
+
+                // Connect the audio processing graph
+                source.connect(processor);
+                processor.connect(audioContext.destination);
+
+                // Process audio data
+                processor.onaudioprocess = function(e) {
+                    const inputData = e.inputBuffer.getChannelData(0);
+                    // Convert float samples to 16-bit integers
+                    const audioData = convertFloatTo16BitPCM(inputData);
+                    // Send audio data to ASR service (would need WebSocket connection to ASR service)
+                    // This is a placeholder - in a real implementation, you would send this to your ASR service
+                    console.log('Audio chunk captured for ASR processing:', audioData.length, 'bytes');
+                };
+
+                console.log('Audio processing for ASR started');
+            } catch (error) {
+                console.error('Error setting up audio processing for ASR:', error);
+            }
+        }
+
+        // Convert float audio data to 16-bit PCM
+        function convertFloatTo16BitPCM(input) {
+            const output = new Int16Array(input.length);
+            for (let i = 0; i < input.length; i++) {
+                const s = Math.max(-1, Math.min(1, input[i]));
+                output[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+            }
+            return output;
+        }
+
+        // Send ASR text to server
+        function sendASRText(text) {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                const message = {
+                    type: 'asr_text',
+                    text: text
+                };
+                ws.send(JSON.stringify(message));
+                displayUserASR(text);
+            } else {
+                console.error('WebSocket is not connected');
+            }
         }
 
         // 处理服务器消息
         function handleMessage(message) {
+            console.log('Received message from server:', message);
             switch(message.type) {
                 case 'users_list':
                     updateUsersList(message.users);
@@ -145,6 +300,15 @@
                 case 'ice_candidate':
                     handleIceCandidate(message);
                     break;
+                case 'bot_response':
+                    // Handle bot response and display it
+                    console.log('Bot response received:', message.text);
+                    displayBotResponse(message.text, message.client_id);
+                    break;
+                case 'error':
+                    console.error('Server error:', message.message);
+                    alert('Server error: ' + message.message);
+                    break;
             }
         }
 
@@ -164,7 +328,12 @@
         async function getLocalStream() {
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({
-                    audio: true,
+                    audio: {
+                        sampleRate: 16000,  // iFlytek ASR typically expects 16kHz
+                        channelCount: 1,    // Mono audio
+                        echoCancellation: true,
+                        noiseSuppression: true
+                    },
                     video: false
                 });
                 localStream = stream;
@@ -175,6 +344,9 @@
                 audio.muted = true;
                 audio.play();
                 mediaContainer.appendChild(audio);
+
+                // Start processing audio for ASR
+                processAudioForASR(stream);
 
                 return stream;
             } catch (error) {
@@ -341,8 +513,27 @@
         startCallBtn.addEventListener('click', startVoiceChat);
         stopCallBtn.addEventListener('click', stopVoiceChat);
 
+        // Test ASR input
+        const sendAsrTestBtn = document.getElementById('sendAsrTestBtn');
+        const asrTestInput = document.getElementById('asrTestInput');
+        sendAsrTestBtn.addEventListener('click', function() {
+            const text = asrTestInput.value.trim();
+            if (text) {
+                sendASRText(text);
+                asrTestInput.value = '';
+            }
+        });
+
         // 页面卸载时断开连接
         window.addEventListener('beforeunload', disconnect);
+
+        // 页面加载时自动连接
+        window.addEventListener('load', function() {
+            statusDiv.textContent = 'Connecting to server on port 8001...';
+            statusDiv.className = 'disconnected';
+            // 延迟一小段时间确保DOM完全加载
+            setTimeout(autoConnect, 1000);
+        });
     </script>
 </body>
 </html>

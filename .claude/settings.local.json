@@ -33,7 +33,16 @@
       "Read(//Users/guanrenjie/miniconda3/envs/fastrtc/lib/python3.11/site-packages/**)",
       "WebFetch(domain:github.com)",
       "mcp__github__search_repositories",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(nginx:*)",
+      "Bash(brew services list:*)",
+      "Bash(sudo cp:*)",
+      "Bash(sudo brew services restart nginx:*)",
+      "Bash(lsof:*)",
+      "mcp__filesystem__create_directory",
+      "mcp__filesystem__write_file",
+      "mcp__filesystem__read_file",
+      "Bash(node:*)"
     ],
     "deny": [],
     "ask": []

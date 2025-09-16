@@ -1,0 +1,18 @@
+{
+  "name": "real-time-chat-ui",
+  "version": "1.0.0",
+  "description": "A real-time chat UI that displays conversation history between user and chatbot",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "chat",
+    "ui",
+    "real-time",
+    "conversation"
+  ],
+  "author": "Claude AI Assistant",
+  "license": "MIT"
+}

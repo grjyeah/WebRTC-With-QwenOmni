@@ -44,35 +44,48 @@ class FastRtcAsrIntegration {
     void Function(Object)? onError,
     bool autoSpeakResult = false, // 新增参数：是否自动朗读结果
   }) async {
+    if (kDebugMode) print('ASR Integration: Starting listening process');
+
     if (_isListening) {
+      if (kDebugMode) print('ASR Integration: Already listening, throwing error');
       throw StateError('Already listening');
     }
 
     _isListening = true;
+    if (kDebugMode) print('ASR Integration: Set listening state to true');
 
     try {
+      if (kDebugMode) print('ASR Integration: Starting ASR client recognition');
+
       // 启动ASR识别
       final result = await _asrClient.startAsr(
         audioStream: audioStream,
-        onPartialResult: onPartialResult,
+        onPartialResult: (text) {
+          if (kDebugMode) print('ASR Integration: Received partial result: "$text"');
+          onPartialResult?.call(text);
+        },
       );
 
       _isListening = false;
+      if (kDebugMode) print('ASR Integration: ASR process completed, result: "${result.text}", isFinal: ${result.isFinal}');
+
       onResult?.call(result);
 
       // 如果启用了自动朗读且TTS可用，则朗读结果
       if (autoSpeakResult && _tts != null && result.text.isNotEmpty) {
+        if (kDebugMode) print('ASR Integration: Auto-speaking result: "${result.text}"');
         try {
           await _tts!.speak(result.text);
         } catch (e) {
           if (kDebugMode) {
-            print('Failed to speak ASR result: $e');
+            print('ASR Integration: Failed to speak ASR result: $e');
           }
         }
       }
 
       return result;
     } catch (e) {
+      if (kDebugMode) print('ASR Integration: Error during ASR process: $e');
       _isListening = false;
       onError?.call(e);
       rethrow;
@@ -88,11 +101,11 @@ class FastRtcAsrIntegration {
 
   /// 处理来自FastRTC的音频数据
   void handleAudioData(Uint8List audioData) {
+    if (kDebugMode) {
+      print('ASR Integration: Received audio data: ${audioData.lengthInBytes} bytes');
+    }
     // 在实际实现中，这里会将音频数据发送到ASR引擎
     // 示例代码仅作演示
-    if (kDebugMode) {
-      print('Received audio data: ${audioData.lengthInBytes} bytes');
-    }
   }
 
   /// 使用TTS朗读文本

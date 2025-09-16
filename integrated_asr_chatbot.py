@@ -14,7 +14,14 @@ import tempfile
 from cosyvoice_tts import CosyVoiceTTS
 
 # 配置日志
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler('asr_chatbot.log'),
+        logging.StreamHandler()
+    ]
+)
 logger = logging.getLogger(__name__)
 
 class IntegratedASRChatbot:
@@ -64,11 +71,22 @@ class IntegratedASRChatbot:
         """
         try:
             logger.info(f"Processing ASR text: {text}")
+            logger.info(f"Session ID: {session_id}")
+
+            # Log the current memory state
+            memory_context = self.memory.load_memory_variables({})
+            logger.info(f"Memory context: {memory_context}")
+
             response = await self.chain.arun(input=text)
             logger.info(f"Generated response: {response}")
+
+            # Log the updated memory state
+            updated_memory = self.memory.load_memory_variables({})
+            logger.info(f"Updated memory context: {updated_memory}")
+
             return response
         except Exception as e:
-            logger.error(f"Error processing ASR text: {e}")
+            logger.error(f"Error processing ASR text: {e}", exc_info=True)
             return "抱歉，处理您的请求时出现了错误。"
 
     def text_to_speech(self, text: str) -> str:
@@ -102,69 +120,88 @@ class IntegratedASRChatbot:
         Returns:
             回复消息
         """
+        logger.info(f"Handling message: {data}")
         msg_type = data.get("type", "")
 
         if msg_type == "asr_text":
             # 处理ASR文本
             asr_text = data.get("text", "")
             session_id = data.get("session_id", None)
+            client_id = data.get("client_id", None)
+
+            logger.info(f"ASR text received: '{asr_text}' from client {client_id} in session {session_id}")
 
             if asr_text:
                 response_text = await self.process_asr_text(asr_text, session_id)
                 audio_file = self.text_to_speech(response_text)
 
+                logger.info(f"Generated response text: '{response_text}' for client {client_id}")
+
                 return {
                     "type": "bot_response",
                     "text": response_text,
                     "audio_file": audio_file,
-                    "session_id": session_id
+                    "session_id": session_id,
+                    "client_id": client_id
                 }
             else:
                 logger.warning("Received empty ASR text")
                 return {
                     "type": "error",
                     "message": "收到空的ASR文本",
-                    "session_id": session_id
+                    "session_id": session_id,
+                    "client_id": client_id
                 }
 
         elif msg_type == "text_message":
             # 处理文本消息（来自Gradio界面）
             user_text = data.get("text", "")
             session_id = data.get("session_id", None)
+            client_id = data.get("client_id", None)
+
+            logger.info(f"Text message received: '{user_text}' from client {client_id} in session {session_id}")
 
             if user_text:
                 response_text = await self.process_asr_text(user_text, session_id)
                 audio_file = self.text_to_speech(response_text)
 
+                logger.info(f"Generated response text: '{response_text}' for client {client_id}")
+
                 return {
                     "type": "bot_response",
                     "text": response_text,
                     "audio_file": audio_file,
-                    "session_id": session_id
+                    "session_id": session_id,
+                    "client_id": client_id
                 }
             else:
                 logger.warning("Received empty text message")
                 return {
                     "type": "error",
                     "message": "收到空的文本消息",
-                    "session_id": session_id
+                    "session_id": session_id,
+                    "client_id": client_id
                 }
 
         elif msg_type == "reset_session":
             # 重置会话
             session_id = data.get("session_id", None)
+            client_id = data.get("client_id", None)
             self.memory.clear()
+            logger.info(f"Session reset for client {client_id} in session {session_id}")
             return {
                 "type": "session_reset",
                 "message": "会话已重置",
-                "session_id": session_id
+                "session_id": session_id,
+                "client_id": client_id
             }
 
         else:
             logger.warning(f"Unknown message type: {msg_type}")
             return {
                 "type": "error",
-                "message": f"未知的消息类型: {msg_type}"
+                "message": f"未知的消息类型: {msg_type}",
+                "client_id": data.get("client_id", None)
             }
 
     async def websocket_server(self, websocket, path):

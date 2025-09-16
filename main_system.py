@@ -25,7 +25,7 @@ class VoiceConversationSystem:
             sys.executable, "voice_chat_server.py"
         ], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         self.processes.append(process)
-        print("✓ FastRTC server started on port 8000")
+        print("✓ FastRTC server started on port 8001")
         return process
 
     def start_asr_chatbot(self):
@@ -63,7 +63,7 @@ class VoiceConversationSystem:
             print("=" * 50)
             print("All services started successfully!")
             print("Access the system at:")
-            print("- Voice chat client: http://localhost:8000 (WebSocket server)")
+            print("- Voice chat client: http://localhost:8001 (WebSocket server)")
             print("- Gradio interface: http://localhost:7860")
             print("- Press Ctrl+C to stop all services")
             print("=" * 50)
